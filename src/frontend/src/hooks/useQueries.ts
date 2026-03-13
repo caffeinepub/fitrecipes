@@ -28,6 +28,23 @@ export function useCreateRecipe() {
   });
 }
 
+export function useUpdateRecipe() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      id,
+      recipe,
+    }: { id: bigint; recipe: CreateRecipeRequest }) => {
+      if (!actor) throw new Error("Actor not ready");
+      return actor.updateRecipe(id, recipe);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["recipes"] });
+    },
+  });
+}
+
 export function useDeleteRecipe() {
   const { actor } = useActor();
   const queryClient = useQueryClient();

@@ -35,6 +35,7 @@ export interface Recipe {
 }
 export interface _SERVICE {
   'createRecipe' : ActorMethod<[CreateRecipeRequest], Recipe>,
+  'updateRecipe' : ActorMethod<[bigint, CreateRecipeRequest], Recipe>,
   'deleteRecipe' : ActorMethod<[bigint], boolean>,
   'getRecipe' : ActorMethod<[bigint], [] | [Recipe]>,
   'getRecipes' : ActorMethod<[], Array<Recipe>>,

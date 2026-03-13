@@ -34,6 +34,7 @@ export const Recipe = IDL.Record({
 
 export const idlService = IDL.Service({
   'createRecipe' : IDL.Func([CreateRecipeRequest], [Recipe], []),
+  'updateRecipe' : IDL.Func([IDL.Nat, CreateRecipeRequest], [Recipe], []),
   'deleteRecipe' : IDL.Func([IDL.Nat], [IDL.Bool], []),
   'getRecipe' : IDL.Func([IDL.Nat], [IDL.Opt(Recipe)], ['query']),
   'getRecipes' : IDL.Func([], [IDL.Vec(Recipe)], ['query']),
@@ -73,6 +74,7 @@ export const idlFactory = ({ IDL }) => {
   });
   return IDL.Service({
     'createRecipe' : IDL.Func([CreateRecipeRequest], [Recipe], []),
+    'updateRecipe' : IDL.Func([IDL.Nat, CreateRecipeRequest], [Recipe], []),
     'deleteRecipe' : IDL.Func([IDL.Nat], [IDL.Bool], []),
     'getRecipe' : IDL.Func([IDL.Nat], [IDL.Opt(Recipe)], ['query']),
     'getRecipes' : IDL.Func([], [IDL.Vec(Recipe)], ['query']),

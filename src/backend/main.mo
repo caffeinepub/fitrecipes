@@ -138,6 +138,31 @@ actor {
     newRecipe;
   };
 
+  public shared func updateRecipe(id : Nat, recipe : CreateRecipeRequest) : async Recipe {
+    switch (recipesV2.get(id)) {
+      case (null) { Runtime.trap("Recipe does not exist") };
+      case (?existing) {
+        let updated : Recipe = {
+          id = existing.id;
+          name = recipe.name;
+          description = recipe.description;
+          category = recipe.category;
+          calories = recipe.calories;
+          protein = recipe.protein;
+          carbs = recipe.carbs;
+          fat = recipe.fat;
+          prepTime = recipe.prepTime;
+          isVeg = recipe.isVeg;
+          imageUrl = recipe.imageUrl;
+          ingredients = recipe.ingredients;
+          steps = recipe.steps;
+        };
+        recipesV2.add(id, updated);
+        updated;
+      };
+    };
+  };
+
   public shared func deleteRecipe(id : Nat) : async Bool {
     switch (recipesV2.get(id)) {
       case (null) { Runtime.trap("Recipe does not exist") };

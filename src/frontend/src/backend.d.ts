@@ -38,6 +38,7 @@ export interface Recipe {
 }
 export interface backendInterface {
     createRecipe(recipe: CreateRecipeRequest): Promise<Recipe>;
+    updateRecipe(id: bigint, recipe: CreateRecipeRequest): Promise<Recipe>;
     deleteRecipe(id: bigint): Promise<boolean>;
     getRecipe(id: bigint): Promise<Recipe | null>;
     getRecipes(): Promise<Array<Recipe>>;

@@ -120,6 +120,7 @@ export interface Recipe {
 }
 export interface backendInterface {
     createRecipe(recipe: CreateRecipeRequest): Promise<Recipe>;
+    updateRecipe(id: bigint, recipe: CreateRecipeRequest): Promise<Recipe>;
     deleteRecipe(id: bigint): Promise<boolean>;
     getRecipe(id: bigint): Promise<Recipe | null>;
     getRecipes(): Promise<Array<Recipe>>;
@@ -138,6 +139,20 @@ export class Backend implements backendInterface {
             }
         } else {
             const result = await this.actor.createRecipe(arg0);
+            return result;
+        }
+    }
+    async updateRecipe(arg0: bigint, arg1: CreateRecipeRequest): Promise<Recipe> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.updateRecipe(arg0, arg1);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.updateRecipe(arg0, arg1);
             return result;
         }
     }
