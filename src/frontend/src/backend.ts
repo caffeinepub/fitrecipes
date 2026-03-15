@@ -119,6 +119,9 @@ export interface Recipe {
     protein: bigint;
 }
 export interface backendInterface {
+    claimOwner(): Promise<boolean>;
+    getOwner(): Promise<Principal | null>;
+    isOwner(p: Principal): Promise<boolean>;
     createRecipe(recipe: CreateRecipeRequest): Promise<Recipe>;
     updateRecipe(id: bigint, recipe: CreateRecipeRequest): Promise<Recipe>;
     deleteRecipe(id: bigint): Promise<boolean>;
@@ -128,6 +131,44 @@ export interface backendInterface {
 import type { Recipe as _Recipe } from "./declarations/backend.did.d.ts";
 export class Backend implements backendInterface {
     constructor(private actor: ActorSubclass<_SERVICE>, private _uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, private _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, private processError?: (error: unknown) => never){}
+    async claimOwner(): Promise<boolean> {
+        if (this.processError) {
+            try {
+                return await this.actor.claimOwner();
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            return await this.actor.claimOwner();
+        }
+    }
+    async getOwner(): Promise<Principal | null> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getOwner();
+                return result.length === 0 ? null : result[0];
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getOwner();
+            return result.length === 0 ? null : result[0];
+        }
+    }
+    async isOwner(p: Principal): Promise<boolean> {
+        if (this.processError) {
+            try {
+                return await this.actor.isOwner(p);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            return await this.actor.isOwner(p);
+        }
+    }
     async createRecipe(arg0: CreateRecipeRequest): Promise<Recipe> {
         if (this.processError) {
             try {

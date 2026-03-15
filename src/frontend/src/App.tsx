@@ -4,13 +4,23 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Toaster } from "@/components/ui/sonner";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Dumbbell, LogIn, LogOut, Plus, Search, Zap } from "lucide-react";
+import {
+  Dumbbell,
+  LogIn,
+  LogOut,
+  Plus,
+  Search,
+  ShieldCheck,
+  Zap,
+} from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
 import type { Recipe } from "./backend.d";
 import { AddRecipeDialog } from "./components/AddRecipeDialog";
 import { RecipeCard } from "./components/RecipeCard";
 import { RecipeDetailSheet } from "./components/RecipeDetailSheet";
+import { useActor } from "./hooks/useActor";
 import { useInternetIdentity } from "./hooks/useInternetIdentity";
 import { useGetRecipes } from "./hooks/useQueries";
 
@@ -26,200 +36,6 @@ const CATEGORIES = [
 
 const SKELETON_KEYS = ["sk-0", "sk-1", "sk-2", "sk-3", "sk-4", "sk-5"];
 
-const SAMPLE_RECIPES: Recipe[] = [
-  {
-    id: BigInt(1),
-    name: "Grilled Chicken & Quinoa Power Bowl",
-    description:
-      "High-protein meal prep staple with perfectly seasoned chicken and fluffy quinoa.",
-    category: "High Protein",
-    calories: BigInt(520),
-    protein: BigInt(48),
-    carbs: BigInt(42),
-    fat: BigInt(12),
-    prepTime: BigInt(25),
-    isVeg: false,
-    imageUrl: "",
-    ingredients: [
-      "200g chicken breast",
-      "80g dry quinoa",
-      "1 cup spinach",
-      "1/2 avocado",
-      "Cherry tomatoes",
-      "Lemon juice",
-      "Olive oil",
-      "Salt & pepper",
-    ],
-    steps: [
-      "Season chicken with salt, pepper, and garlic powder.",
-      "Grill chicken 6 min per side until cooked through.",
-      "Cook quinoa per package instructions.",
-      "Assemble bowl with quinoa base, sliced chicken, spinach, avocado, and tomatoes.",
-      "Drizzle with lemon juice and olive oil.",
-    ],
-  },
-  {
-    id: BigInt(2),
-    name: "Keto Avocado Egg Salad",
-    description:
-      "Creamy, satisfying low-carb egg salad loaded with healthy fats to keep you full.",
-    category: "Keto",
-    calories: BigInt(380),
-    protein: BigInt(18),
-    carbs: BigInt(4),
-    fat: BigInt(32),
-    prepTime: BigInt(10),
-    isVeg: true,
-    imageUrl: "",
-    ingredients: [
-      "3 hard-boiled eggs",
-      "1 ripe avocado",
-      "1 tbsp Dijon mustard",
-      "2 tbsp mayo",
-      "Fresh dill",
-      "Salt & pepper",
-      "Paprika",
-    ],
-    steps: [
-      "Mash avocado in a bowl.",
-      "Chop hard-boiled eggs and add to bowl.",
-      "Mix in mustard, mayo, and dill.",
-      "Season with salt, pepper, and paprika.",
-      "Serve on lettuce wraps or cucumber slices.",
-    ],
-  },
-  {
-    id: BigInt(3),
-    name: "Vegan Lentil Protein Soup",
-    description:
-      "Warming red lentil soup packed with plant protein and anti-inflammatory spices.",
-    category: "Vegan",
-    calories: BigInt(340),
-    protein: BigInt(22),
-    carbs: BigInt(48),
-    fat: BigInt(6),
-    prepTime: BigInt(30),
-    isVeg: true,
-    imageUrl: "",
-    ingredients: [
-      "200g red lentils",
-      "1 large onion",
-      "3 garlic cloves",
-      "1 can diced tomatoes",
-      "2 tsp cumin",
-      "1 tsp turmeric",
-      "1 tsp paprika",
-      "Vegetable broth",
-      "Fresh cilantro",
-    ],
-    steps: [
-      "Saute onion and garlic in olive oil until golden.",
-      "Add spices and cook 1 minute until fragrant.",
-      "Add rinsed lentils, tomatoes, and broth.",
-      "Simmer 20 minutes until lentils are soft.",
-      "Blend half the soup for a creamy texture.",
-      "Garnish with cilantro and a squeeze of lemon.",
-    ],
-  },
-  {
-    id: BigInt(4),
-    name: "Bulking Peanut Butter Oat Pancakes",
-    description:
-      "Calorie-dense, macro-balanced pancakes perfect for a mass-building breakfast.",
-    category: "Bulking",
-    calories: BigInt(680),
-    protein: BigInt(34),
-    carbs: BigInt(72),
-    fat: BigInt(26),
-    prepTime: BigInt(15),
-    isVeg: true,
-    imageUrl: "",
-    ingredients: [
-      "1 cup rolled oats",
-      "2 eggs",
-      "1 banana",
-      "3 tbsp peanut butter",
-      "1 scoop whey protein",
-      "1/2 cup almond milk",
-      "1 tsp baking powder",
-      "Honey for topping",
-    ],
-    steps: [
-      "Blend oats into flour consistency.",
-      "Mix all ingredients until smooth batter forms.",
-      "Heat non-stick pan over medium heat.",
-      "Pour 1/4 cup batter per pancake.",
-      "Cook 2-3 min per side until golden.",
-      "Serve with honey and extra peanut butter.",
-    ],
-  },
-  {
-    id: BigInt(5),
-    name: "Low Carb Turkey Lettuce Wraps",
-    description:
-      "Light, crispy lettuce wraps filled with savory ground turkey and fresh toppings.",
-    category: "Low Carb",
-    calories: BigInt(290),
-    protein: BigInt(28),
-    carbs: BigInt(8),
-    fat: BigInt(16),
-    prepTime: BigInt(20),
-    isVeg: false,
-    imageUrl: "",
-    ingredients: [
-      "250g ground turkey",
-      "Butter lettuce leaves",
-      "2 garlic cloves",
-      "1 tbsp soy sauce (low sodium)",
-      "1 tsp sesame oil",
-      "Ginger",
-      "Green onions",
-      "Shredded carrots",
-      "Sriracha",
-    ],
-    steps: [
-      "Brown ground turkey in a pan over medium-high heat.",
-      "Add garlic and ginger, cook 1 minute.",
-      "Stir in soy sauce and sesame oil.",
-      "Separate lettuce leaves into cups.",
-      "Fill each leaf with turkey mixture.",
-      "Top with carrots, green onions, and sriracha.",
-    ],
-  },
-  {
-    id: BigInt(6),
-    name: "Cutting Tuna Zucchini Noodles",
-    description:
-      "Ultra-lean, high-protein pasta alternative that hits macros without the bulk.",
-    category: "Cutting",
-    calories: BigInt(240),
-    protein: BigInt(36),
-    carbs: BigInt(10),
-    fat: BigInt(6),
-    prepTime: BigInt(15),
-    isVeg: false,
-    imageUrl: "",
-    ingredients: [
-      "2 medium zucchinis",
-      "1 can tuna in water",
-      "2 tbsp tomato paste",
-      "1 garlic clove",
-      "Fresh basil",
-      "Lemon zest",
-      "Chili flakes",
-      "Salt",
-    ],
-    steps: [
-      "Spiralize zucchinis into noodles.",
-      "Saute garlic in a pan with olive oil spray.",
-      "Add tomato paste and chili flakes, cook 2 min.",
-      "Drain tuna and add to pan.",
-      "Toss zucchini noodles and cook 2 min max.",
-      "Finish with lemon zest and fresh basil.",
-    ],
-  },
-];
-
 const queryClient = new QueryClient();
 
 function AppContent() {
@@ -227,20 +43,98 @@ function AppContent() {
   const [search, setSearch] = useState("");
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
   const [showAdd, setShowAdd] = useState(false);
+  const [ownerPrincipal, setOwnerPrincipal] = useState<
+    string | null | undefined
+  >(undefined);
+  const [isOwnerChecked, setIsOwnerChecked] = useState(false);
+  const [showLoginButton, setShowLoginButton] = useState(false);
+  const logoClickCount = useRef(0);
+  const logoClickTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const { identity, login, clear, isLoggingIn } = useInternetIdentity();
+  const { identity, login, clear, isLoggingIn, loginStatus } =
+    useInternetIdentity();
+  const { actor } = useActor();
   const isAuthenticated = !!identity && !identity.getPrincipal().isAnonymous();
 
   const { data: backendRecipes = [], isLoading } = useGetRecipes();
 
-  const allRecipes = useMemo(() => {
-    const backendIds = new Set(backendRecipes.map((r) => r.id));
-    const filtered = SAMPLE_RECIPES.filter((r) => !backendIds.has(r.id));
-    return [...backendRecipes, ...filtered];
-  }, [backendRecipes]);
+  // Load owner principal on startup
+  useEffect(() => {
+    if (!actor) return;
+    actor
+      .getOwner()
+      .then((o) => {
+        setOwnerPrincipal(o ? o.toString() : null);
+      })
+      .catch(() => {
+        setOwnerPrincipal(null);
+      });
+  }, [actor]);
+
+  // After login, verify caller is the owner
+  useEffect(() => {
+    if (!isAuthenticated || !actor || ownerPrincipal === undefined) return;
+    if (isOwnerChecked) return;
+
+    const callerPrincipal = identity!.getPrincipal().toString();
+
+    if (ownerPrincipal === null) {
+      setIsOwnerChecked(true);
+      return;
+    }
+
+    if (callerPrincipal !== ownerPrincipal) {
+      toast.error("Access denied. Only the app owner can log in.");
+      clear();
+    }
+    setIsOwnerChecked(true);
+  }, [isAuthenticated, actor, ownerPrincipal, identity, clear, isOwnerChecked]);
+
+  // Reset check flag when logged out
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setIsOwnerChecked(false);
+    }
+  }, [isAuthenticated]);
+
+  // Hide login button after 10 seconds
+  useEffect(() => {
+    if (!showLoginButton || isAuthenticated) return;
+    const timer = setTimeout(() => setShowLoginButton(false), 10000);
+    return () => clearTimeout(timer);
+  }, [showLoginButton, isAuthenticated]);
+
+  const handleLogoClick = () => {
+    logoClickCount.current += 1;
+    if (logoClickTimer.current) clearTimeout(logoClickTimer.current);
+    if (logoClickCount.current >= 5) {
+      logoClickCount.current = 0;
+      setShowLoginButton(true);
+    } else {
+      logoClickTimer.current = setTimeout(() => {
+        logoClickCount.current = 0;
+      }, 2000);
+    }
+  };
+
+  const handleClaimOwner = async () => {
+    if (!actor || !isAuthenticated) return;
+    try {
+      const success = await actor.claimOwner();
+      if (success) {
+        const principal = identity!.getPrincipal().toString();
+        setOwnerPrincipal(principal);
+        toast.success("You are now the app owner! Only you can log in.");
+      } else {
+        toast.error("Owner is already claimed.");
+      }
+    } catch {
+      toast.error("Failed to claim ownership.");
+    }
+  };
 
   const filteredRecipes = useMemo(() => {
-    return allRecipes.filter((recipe) => {
+    return backendRecipes.filter((recipe) => {
       const matchCategory =
         activeCategory === "All" || recipe.category === activeCategory;
       const matchSearch = recipe.name
@@ -248,19 +142,37 @@ function AppContent() {
         .includes(search.toLowerCase());
       return matchCategory && matchSearch;
     });
-  }, [allRecipes, activeCategory, search]);
+  }, [backendRecipes, activeCategory, search]);
+
+  const handleSelectRecipe = (recipe: Recipe) => {
+    setSelectedRecipe(recipe);
+  };
+
+  const showClaimBanner = isAuthenticated && ownerPrincipal === null;
+
+  // Login button visible only when: no owner set yet, OR secret logo tap triggered
+  const showLoginBtn =
+    !isAuthenticated && (showLoginButton || ownerPrincipal === null);
 
   return (
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-40 border-b border-border bg-background/80 backdrop-blur-md">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <img
-              src="/assets/generated/fitwise-logo-transparent.png"
-              alt="Fitwise Recipes"
-              className="h-10 w-auto object-contain mix-blend-multiply dark:mix-blend-screen"
-              style={{ background: "transparent" }}
-            />
+            {/* Clicking the logo 5 times reveals the hidden login button */}
+            <button
+              type="button"
+              onClick={handleLogoClick}
+              className="focus:outline-none bg-transparent border-0 p-0"
+              aria-label="App logo"
+            >
+              <img
+                src="/assets/generated/fitwise-logo-transparent.png"
+                alt="Fitwise Recipes"
+                className="h-10 w-auto object-contain mix-blend-multiply dark:mix-blend-screen cursor-pointer select-none"
+                style={{ background: "transparent" }}
+              />
+            </button>
           </div>
           <div className="flex items-center gap-2">
             {isAuthenticated && (
@@ -284,12 +196,12 @@ function AppContent() {
                 <LogOut className="w-4 h-4" />
                 <span className="hidden sm:inline">Logout</span>
               </Button>
-            ) : (
+            ) : showLoginBtn ? (
               <Button
                 data-ocid="header.secondary_button"
                 variant="outline"
                 onClick={login}
-                disabled={isLoggingIn}
+                disabled={isLoggingIn || loginStatus === "logging-in"}
                 className="gap-2"
               >
                 <LogIn className="w-4 h-4" />
@@ -297,10 +209,33 @@ function AppContent() {
                   {isLoggingIn ? "Logging in..." : "Login"}
                 </span>
               </Button>
-            )}
+            ) : null}
           </div>
         </div>
       </header>
+
+      {/* Claim owner banner */}
+      {showClaimBanner && (
+        <div className="bg-amber-900/30 border-b border-amber-700/50">
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-2 text-amber-300 text-sm">
+              <ShieldCheck className="w-4 h-4 shrink-0" />
+              <span>
+                No owner is set yet. Click to claim ownership so only you can
+                log in.
+              </span>
+            </div>
+            <Button
+              data-ocid="claim_owner.button"
+              size="sm"
+              onClick={handleClaimOwner}
+              className="bg-amber-600 hover:bg-amber-500 text-white shrink-0"
+            >
+              Claim Ownership
+            </Button>
+          </div>
+        </div>
+      )}
 
       <main className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
         {/* ── HERO ─────────────────────────────────────────────────────── */}
@@ -311,26 +246,16 @@ function AppContent() {
           className="mb-8"
         >
           <div className="relative rounded-2xl overflow-hidden h-64 sm:h-80 md:h-96">
-            {/* Background image */}
             <img
               src="/assets/uploads/ChatGPT-Image-Mar-13-2026-03_02_13-AM-2.png"
               alt="Fitness recipes"
               className="w-full h-full object-cover scale-105"
             />
-
-            {/* Strong dark gradient overlay for readability */}
             <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/65 to-black/20" />
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-
-            {/* Animated shimmer sweep */}
             <div className="hero-shimmer absolute inset-0 pointer-events-none" />
-
-            {/* Glow orb behind headline */}
             <div className="absolute left-6 sm:left-10 top-1/2 -translate-y-1/2 w-56 h-56 rounded-full bg-primary/10 blur-3xl pointer-events-none hero-pulse" />
-
-            {/* Content */}
             <div className="absolute inset-0 flex flex-col justify-center px-6 sm:px-10 md:px-14">
-              {/* Badge pill */}
               <motion.div
                 initial={{ opacity: 0, x: -16 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -342,8 +267,6 @@ function AppContent() {
                   Your Nutrition Hub
                 </span>
               </motion.div>
-
-              {/* Main headline */}
               <motion.h1
                 initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -359,8 +282,6 @@ function AppContent() {
                   </span>
                 </span>
               </motion.h1>
-
-              {/* Description */}
               <motion.p
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -462,7 +383,7 @@ function AppContent() {
                   key={String(recipe.id)}
                   recipe={recipe}
                   index={index}
-                  onClick={() => setSelectedRecipe(recipe)}
+                  onClick={() => handleSelectRecipe(recipe)}
                 />
               ))}
             </div>
@@ -489,6 +410,7 @@ function AppContent() {
         open={!!selectedRecipe}
         onClose={() => setSelectedRecipe(null)}
         isAdmin={isAuthenticated}
+        isBackendRecipe={true}
       />
       <AddRecipeDialog open={showAdd} onClose={() => setShowAdd(false)} />
       <Toaster />

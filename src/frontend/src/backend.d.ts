@@ -37,6 +37,9 @@ export interface Recipe {
     protein: bigint;
 }
 export interface backendInterface {
+    claimOwner(): Promise<boolean>;
+    getOwner(): Promise<Principal | null>;
+    isOwner(p: Principal): Promise<boolean>;
     createRecipe(recipe: CreateRecipeRequest): Promise<Recipe>;
     updateRecipe(id: bigint, recipe: CreateRecipeRequest): Promise<Recipe>;
     deleteRecipe(id: bigint): Promise<boolean>;

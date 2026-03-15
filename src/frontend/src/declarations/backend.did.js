@@ -33,6 +33,9 @@ export const Recipe = IDL.Record({
 });
 
 export const idlService = IDL.Service({
+  'claimOwner' : IDL.Func([], [IDL.Bool], []),
+  'getOwner' : IDL.Func([], [IDL.Opt(IDL.Principal)], ['query']),
+  'isOwner' : IDL.Func([IDL.Principal], [IDL.Bool], ['query']),
   'createRecipe' : IDL.Func([CreateRecipeRequest], [Recipe], []),
   'updateRecipe' : IDL.Func([IDL.Nat, CreateRecipeRequest], [Recipe], []),
   'deleteRecipe' : IDL.Func([IDL.Nat], [IDL.Bool], []),
@@ -73,6 +76,9 @@ export const idlFactory = ({ IDL }) => {
     'protein' : IDL.Int,
   });
   return IDL.Service({
+    'claimOwner' : IDL.Func([], [IDL.Bool], []),
+    'getOwner' : IDL.Func([], [IDL.Opt(IDL.Principal)], ['query']),
+    'isOwner' : IDL.Func([IDL.Principal], [IDL.Bool], ['query']),
     'createRecipe' : IDL.Func([CreateRecipeRequest], [Recipe], []),
     'updateRecipe' : IDL.Func([IDL.Nat, CreateRecipeRequest], [Recipe], []),
     'deleteRecipe' : IDL.Func([IDL.Nat], [IDL.Bool], []),

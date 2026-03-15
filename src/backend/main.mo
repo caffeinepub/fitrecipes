@@ -2,6 +2,7 @@ import Map "mo:core/Map";
 import Nat "mo:core/Nat";
 import Order "mo:core/Order";
 import Runtime "mo:core/Runtime";
+import Principal "mo:core/Principal";
 
 actor {
   type RecipeV1 = {
@@ -37,8 +38,8 @@ actor {
   };
 
   module Recipe {
-    public func compare(recipe1 : Recipe, recipe2 : Recipe) : Order.Order {
-      Nat.compare(recipe1.id, recipe2.id);
+    public func compare(r1 : Recipe, r2 : Recipe) : Order.Order {
+      Nat.compare(r1.id, r2.id);
     };
   };
 
@@ -64,22 +65,41 @@ actor {
 
   // Current stable storage
   var recipesV2 = Map.empty<Nat, Recipe>();
-  var nextIdStable : Nat = 9;
+  var nextIdStable : Nat = 0;
+  var nextId : Nat = 0;
+  var initialized : Bool = false;
 
-  var nextId : Nat = 9;
+  // Owner management
+  var owner : ?Principal = null;
 
-  // Compute a safe next ID by scanning existing recipes
+  // Compute a safe next ID by scanning all existing recipes
   func computeNextId() : Nat {
     var maxId : Nat = nextIdStable;
     for ((id, _) in recipesV2.entries()) {
-      if (id >= maxId) {
+      if (id + 1 > maxId) {
         maxId := id + 1;
       };
     };
     maxId;
   };
 
+  func ensureInit() {
+    if (not initialized) {
+      nextId := computeNextId();
+      initialized := true;
+    };
+  };
+
+  func upsertRecipe(id : Nat, recipe : Recipe) {
+    switch (recipesV2.get(id)) {
+      case (?_) { recipesV2.remove(id) };
+      case (null) {};
+    };
+    recipesV2.add(id, recipe);
+  };
+
   system func postupgrade() {
+    // Migrate any legacy RecipeV1 entries to Recipe
     for ((id, r) in recipes.entries()) {
       let migrated : Recipe = {
         id = r.id;
@@ -96,29 +116,65 @@ actor {
         ingredients = r.ingredients;
         steps = r.steps;
       };
-      recipesV2.add(id, migrated);
+      upsertRecipe(id, migrated);
     };
     recipes := Map.empty<Nat, RecipeV1>();
     seedRecipes := [];
     seededRecipes := Map.empty<Nat, RecipeV1>();
     nextId := computeNextId();
+    initialized := true;
   };
 
   system func preupgrade() {
     nextIdStable := nextId;
   };
 
+  // Owner functions
+  public shared(msg) func claimOwner() : async Bool {
+    switch (owner) {
+      case (?_) { false }; // already claimed
+      case (null) {
+        owner := ?msg.caller;
+        true;
+      };
+    };
+  };
+
+  public query func getOwner() : async ?Principal {
+    owner;
+  };
+
+  public query func isOwner(p : Principal) : async Bool {
+    switch (owner) {
+      case (?o) { Principal.equal(o, p) };
+      case (null) { false };
+    };
+  };
+
   public query func getRecipes() : async [Recipe] {
-    recipesV2.values().toArray().sort();
+    let arr = recipesV2.values().toArray();
+    arr.sort();
   };
 
   public query func getRecipe(id : Nat) : async ?Recipe {
     recipesV2.get(id);
   };
 
-  public shared func createRecipe(recipe : CreateRecipeRequest) : async Recipe {
+  public shared(msg) func createRecipe(recipe : CreateRecipeRequest) : async Recipe {
+    switch (owner) {
+      case (?o) {
+        if (not Principal.equal(msg.caller, o)) {
+          Runtime.trap("Unauthorized: only the owner can create recipes");
+        };
+      };
+      case (null) {
+        Runtime.trap("No owner set");
+      };
+    };
+    ensureInit();
     let id = nextId;
     nextId += 1;
+    nextIdStable := nextId;
     let newRecipe : Recipe = {
       id = id;
       name = recipe.name;
@@ -134,11 +190,21 @@ actor {
       ingredients = recipe.ingredients;
       steps = recipe.steps;
     };
-    recipesV2.add(id, newRecipe);
+    upsertRecipe(id, newRecipe);
     newRecipe;
   };
 
-  public shared func updateRecipe(id : Nat, recipe : CreateRecipeRequest) : async Recipe {
+  public shared(msg) func updateRecipe(id : Nat, recipe : CreateRecipeRequest) : async Recipe {
+    switch (owner) {
+      case (?o) {
+        if (not Principal.equal(msg.caller, o)) {
+          Runtime.trap("Unauthorized: only the owner can update recipes");
+        };
+      };
+      case (null) {
+        Runtime.trap("No owner set");
+      };
+    };
     switch (recipesV2.get(id)) {
       case (null) { Runtime.trap("Recipe does not exist") };
       case (?existing) {
@@ -157,13 +223,23 @@ actor {
           ingredients = recipe.ingredients;
           steps = recipe.steps;
         };
-        recipesV2.add(id, updated);
+        upsertRecipe(id, updated);
         updated;
       };
     };
   };
 
-  public shared func deleteRecipe(id : Nat) : async Bool {
+  public shared(msg) func deleteRecipe(id : Nat) : async Bool {
+    switch (owner) {
+      case (?o) {
+        if (not Principal.equal(msg.caller, o)) {
+          Runtime.trap("Unauthorized: only the owner can delete recipes");
+        };
+      };
+      case (null) {
+        Runtime.trap("No owner set");
+      };
+    };
     switch (recipesV2.get(id)) {
       case (null) { Runtime.trap("Recipe does not exist") };
       case (?_) {

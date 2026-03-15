@@ -34,6 +34,9 @@ export interface Recipe {
   'protein' : bigint,
 }
 export interface _SERVICE {
+  'claimOwner' : ActorMethod<[], boolean>,
+  'getOwner' : ActorMethod<[], [] | [Principal]>,
+  'isOwner' : ActorMethod<[Principal], boolean>,
   'createRecipe' : ActorMethod<[CreateRecipeRequest], Recipe>,
   'updateRecipe' : ActorMethod<[bigint, CreateRecipeRequest], Recipe>,
   'deleteRecipe' : ActorMethod<[bigint], boolean>,

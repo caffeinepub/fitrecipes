@@ -29,6 +29,7 @@ interface RecipeDetailSheetProps {
   open: boolean;
   onClose: () => void;
   isAdmin?: boolean;
+  isBackendRecipe?: boolean;
 }
 
 export function RecipeDetailSheet({
@@ -36,12 +37,19 @@ export function RecipeDetailSheet({
   open,
   onClose,
   isAdmin = false,
+  isBackendRecipe = false,
 }: RecipeDetailSheetProps) {
   const deleteMutation = useDeleteRecipe();
   const [showEdit, setShowEdit] = useState(false);
 
   const handleDelete = async () => {
     if (!recipe) return;
+    if (!isBackendRecipe) {
+      toast.info(
+        "Sample recipes cannot be deleted. Only recipes you added can be deleted.",
+      );
+      return;
+    }
     try {
       await deleteMutation.mutateAsync(recipe.id);
       toast.success("Recipe deleted");
@@ -49,6 +57,16 @@ export function RecipeDetailSheet({
     } catch {
       toast.error("Failed to delete recipe");
     }
+  };
+
+  const handleEdit = () => {
+    if (!isBackendRecipe) {
+      toast.info(
+        "Sample recipes cannot be edited. Only recipes you added can be edited.",
+      );
+      return;
+    }
+    setShowEdit(true);
   };
 
   if (!recipe) return null;
@@ -193,7 +211,8 @@ export function RecipeDetailSheet({
                       data-ocid="recipe.detail.edit_button"
                       variant="outline"
                       className="flex-1 border-primary text-primary hover:bg-primary/10"
-                      onClick={() => setShowEdit(true)}
+                      onClick={handleEdit}
+                      disabled={!isBackendRecipe}
                     >
                       <Pencil className="w-4 h-4 mr-2" />
                       Edit Recipe
@@ -203,7 +222,7 @@ export function RecipeDetailSheet({
                       variant="destructive"
                       className="flex-1"
                       onClick={handleDelete}
-                      disabled={deleteMutation.isPending}
+                      disabled={deleteMutation.isPending || !isBackendRecipe}
                     >
                       <Trash2 className="w-4 h-4 mr-2" />
                       {deleteMutation.isPending
@@ -211,6 +230,11 @@ export function RecipeDetailSheet({
                         : "Delete Recipe"}
                     </Button>
                   </div>
+                  {!isBackendRecipe && (
+                    <p className="text-xs text-muted-foreground text-center mt-2">
+                      Sample recipes cannot be edited or deleted
+                    </p>
+                  )}
                 </>
               )}
             </div>
